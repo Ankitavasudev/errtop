@@ -3,61 +3,264 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pod log report</title>
+<title>k8s-pod-analyzer — rank pod log errors in your browser</title>
+<meta name="description" content="Paste kubectl logs and get the same analysis as the CLI: error/warn/info/debug counts, a per-minute timeline, and the top recurring error messages — all in your browser.">
 <style>
-:root{--bg:#0b1120;--panel:#141c2f;--text:#e6edf7;--muted:#8fa3bf;--line:#243049;--error:#f87171;--warn:#fbbf24;--info:#38bdf8;--debug:#a78bfa}
+:root{--bg:#0b1120;--panel:#141c2f;--panel-2:#1a2438;--text:#e6edf7;--muted:#8fa3bf;--line:#243049;--error:#f87171;--warn:#fbbf24;--info:#38bdf8;--debug:#a78bfa;--ok:#34d399}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-main{max-width:900px;margin:0 auto;padding:40px 20px 64px}
-h1{font-size:24px;margin:0 0 4px}
-.sub{color:var(--muted);font-size:13px;margin-bottom:28px}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:28px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
-.card .n{font-size:24px;font-weight:600}
-.card .l{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
-.card.error .n{color:var(--error)}
-.card.warn .n{color:var(--warn)}
-.card.info .n{color:var(--info)}
-.card.debug .n{color:var(--debug)}
-section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:20px}
-h2{font-size:15px;margin:0 0 14px}
-table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
-th{color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase}
-td.num,th.num{text-align:right;white-space:nowrap;width:64px}
-tr:last-child td{border-bottom:0}
-.bar{display:grid;grid-template-columns:52px 1fr 40px;gap:10px;align-items:center;margin:6px 0;font-size:13px}
+body{margin:0;background:radial-gradient(760px 460px at 10% -10%,rgba(56,189,248,.12),transparent 60%),radial-gradient(700px 450px at 95% 0%,rgba(248,113,113,.08),transparent 55%),var(--bg);color:var(--text);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1120px;margin:0 auto;padding:22px 20px 56px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+h1{font-size:21px;margin:0}
+h1 code{color:var(--info);font-size:.82em}
+.sub{color:var(--muted);font-size:12px;margin-top:2px}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--muted);font-size:12.5px;cursor:pointer;transition:.15s;text-decoration:none}
+.btn:hover{color:var(--text);border-color:#354569;transform:translateY(-1px)}
+.btn.primary{background:var(--info);border-color:transparent;color:#04121c;font-weight:700}
+.btn.primary:hover{filter:brightness(1.1)}
+.btn svg{width:15px;height:15px}
+.editor-panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:16px}
+.editor-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--panel-2)}
+.editor-h h2{margin:0;font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+textarea{display:block;width:100%;height:200px;resize:vertical;border:0;outline:0;padding:14px;background:transparent;color:var(--text);font:12.5px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre;overflow:auto}
+textarea::placeholder{color:#46546e}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.card .n{font-size:22px;font-weight:700}
+.card .l{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.card.error .n{color:var(--error)}.card.warn .n{color:var(--warn)}.card.info .n{color:var(--info)}.card.debug .n{color:var(--debug)}.card.ok .n{color:var(--ok)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+h2{font-size:13px;margin:0 0 12px;color:var(--muted);letter-spacing:.07em;text-transform:uppercase}
+.bars{display:grid;gap:6px}
+.bar-row{display:grid;grid-template-columns:56px 1fr 44px;gap:10px;align-items:center;font-size:12.5px}
 .track{background:#0b1224;border-radius:4px;height:10px;overflow:hidden}
-.fill{height:100%;background:linear-gradient(90deg,#2563eb,#38bdf8);border-radius:4px}
-.count{text-align:right;color:var(--muted)}
-.empty{color:var(--muted);font-size:14px;margin:0}
-footer{color:var(--muted);font-size:12px;margin-top:28px}
+.fill{height:100%;background:linear-gradient(90deg,#2563eb,#38bdf8);border-radius:4px;transition:width .4s ease}
+.count{text-align:right;color:var(--muted);font-family:ui-monospace,monospace}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:rgba(56,189,248,.05)}
+.rank{font-family:ui-monospace,monospace;color:var(--muted);width:30px}
+.err-msg{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;word-break:break-word}
+.bar-inline{display:grid;grid-template-columns:56px 1fr 36px;gap:8px;align-items:center;min-width:180px}
+.mini{background:#0b1224;border-radius:4px;height:7px;overflow:hidden}
+.mini i{display:block;height:100%;background:var(--error);border-radius:4px}
+.mini-num{text-align:right;color:var(--muted);font-family:ui-monospace,monospace}
+.empty{color:var(--muted);text-align:center;padding:30px 12px}
+.foot{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:11px;margin-top:12px;flex-wrap:wrap}
+.kbd{border:1px solid var(--line);border-radius:5px;padding:0 6px;font:11px ui-monospace,monospace;background:var(--panel-2)}
+.err-box{margin:12px 0;border:1px solid rgba(248,113,113,.4);background:rgba(248,113,113,.08);color:#ffc6c6;border-radius:10px;padding:10px 14px;font-size:13px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);padding:9px 18px;border:1px solid var(--line);border-radius:10px;background:rgba(11,17,32,.97);font-size:13px;z-index:30}
+.toast[hidden]{display:none}
 </style>
 </head>
 <body>
-<main>
-<h1>K8s pod log analysis</h1>
-<div class="sub">Generated 2026-11-03 09:49 IST &middot; 101 lines analysed</div>
-<div class="cards">
-<div class="card"><div class="n">101</div><div class="l">Lines</div></div>
-<div class="card error"><div class="n">30</div><div class="l">Errors</div></div>
-<div class="card warn"><div class="n">17</div><div class="l">Warnings</div></div>
-<div class="card info"><div class="n">49</div><div class="l">Info</div></div>
-<div class="card debug"><div class="n">5</div><div class="l">Debug</div></div>
-</div>
-<section>
-<h2>Top errors</h2>
-<table>
-<thead><tr><th>Message</th><th class="num">Count</th></tr></thead>
-<tbody><tr><td>connection reset by peer</td><td class="num">14</td></tr><tr><td>context deadline exceeded calling payments</td><td class="num">7</td></tr><tr><td>pq: too many connections</td><td class="num">6</td></tr><tr><td>upstream 503 from inventory</td><td class="num">3</td></tr></tbody>
-</table>
-</section>
-<section>
-<h2>Timeline (per minute)</h2>
-<div class="bar"><span>09:52</span><div class="track"><div class="fill" style="width:40%"></div></div><span class="count">6</span></div><div class="bar"><span>09:53</span><div class="track"><div class="fill" style="width:26%"></div></div><span class="count">4</span></div><div class="bar"><span>09:54</span><div class="track"><div class="fill" style="width:26%"></div></div><span class="count">4</span></div><div class="bar"><span>09:55</span><div class="track"><div class="fill" style="width:26%"></div></div><span class="count">4</span></div><div class="bar"><span>09:56</span><div class="track"><div class="fill" style="width:60%"></div></div><span class="count">9</span></div><div class="bar"><span>09:57</span><div class="track"><div class="fill" style="width:66%"></div></div><span class="count">10</span></div><div class="bar"><span>09:58</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="count">15</span></div><div class="bar"><span>09:59</span><div class="track"><div class="fill" style="width:40%"></div></div><span class="count">6</span></div><div class="bar"><span>10:00</span><div class="track"><div class="fill" style="width:80%"></div></div><span class="count">12</span></div><div class="bar"><span>10:01</span><div class="track"><div class="fill" style="width:66%"></div></div><span class="count">10</span></div><div class="bar"><span>10:02</span><div class="track"><div class="fill" style="width:46%"></div></div><span class="count">7</span></div>
-</section>
+<div class="wrap">
 
-<footer>Generated by k8s-pod-analyzer v0.2.0. Errors are grouped after removing timestamps and level prefixes.</footer>
-</main>
+  <div class="top">
+    <div>
+      <h1><code>k8s-pod-analyzer</code></h1>
+      <div class="sub">Paste <code>kubectl logs</code> output · same analysis as the CLI · runs in your browser</div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="sampleBtn" title="Load sample logs">Sample logs</button>
+      <button class="btn" id="copyBtn" title="Copy analysis JSON">Copy JSON</button>
+      <button class="btn" id="soundBtn" title="Toggle sound">Sound</button>
+      <a class="btn" href="https://github.com/Ankitavasudev/k8s-pod-analyzer" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </div>
+
+  <div class="editor-panel">
+    <div class="editor-h">
+      <h2>Log lines <span id="hint">· one entry per line</span></h2>
+      <button class="btn primary" id="analyzeBtn" style="padding:6px 16px">Analyze</button>
+    </div>
+    <textarea id="logs" spellcheck="false" placeholder="2026-08-01T10:00:01 api ERROR: connection refused&#10;2026-08-01T10:00:02 api INFO: retrying&#10;..."></textarea>
+  </div>
+
+  <div class="cards" id="summaryCards"></div>
+
+  <section class="panel" aria-label="Per-minute timeline">
+    <h2>Timeline <span style="text-transform:none;letter-spacing:0;font-weight:400">· lines per minute</span></h2>
+    <div class="bars" id="timeline"></div>
+  </section>
+
+  <section class="panel" aria-label="Top errors">
+    <h2>Top errors <span style="text-transform:none;letter-spacing:0;font-weight:400">· timestamp &amp; level stripped, first 10</span></h2>
+    <table id="topErrors">
+      <thead><tr><th class="rank">#</th><th>Message</th><th style="width:220px">Count</th></tr></thead>
+      <tbody id="errorRows"></tbody>
+    </table>
+  </section>
+
+  <div class="foot">
+    <span>Ported byte-for-byte from <code>main.go</code> (<code>parseLogLine</code> → <code>analyzeLogs</code>) · <a href="https://github.com/Ankitavasudev/k8s-pod-analyzer" style="color:var(--info)">source</a></span>
+    <span><span class="kbd">Ctrl</span>+<span class="kbd">Enter</span> analyze</span>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ================= sound ================= */
+const Sound = (() => {
+  let ctx = null, muted = localStorage.getItem('kpa-sound') === '0';
+  const ensure = () => {
+    if (!ctx) try { ctx = new (window.AudioContext||window.webkitAudioContext)(); } catch { ctx = null; }
+    if (ctx && ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  };
+  const tone = (freq, dur, type='sine', gain=0.07, slide=0) => {
+    if (muted) return; const c = ensure(); if (!c) return;
+    const now = c.currentTime, o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, now);
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, freq+slide), now+dur);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(gain, now+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, now+dur);
+    o.connect(g).connect(c.destination); o.start(now); o.stop(now+dur+0.02);
+  };
+  return {
+    analyze: () => { tone(440,.05,'square',.05); setTimeout(()=>tone(587,.06,'square',.05),55); },
+    clean:   () => { tone(523,.08,'sine',.09); setTimeout(()=>tone(659,.08,'sine',.09),90); setTimeout(()=>tone(784,.12,'sine',.09),180); },
+    bad:     () => tone(330,.2,'sawtooth',.07,-150),
+    copy:    () => tone(740,.04,'triangle',.06),
+    toggleMute: () => { muted = !muted; localStorage.setItem('kpa-sound', muted ? '0' : '1'); if (!muted) tone(880,.06,'sine',.08); return muted; },
+    isMuted: () => muted,
+  };
+})();
+
+/* ============ analyzer (ported from main.go) ============ */
+const TS_RE = /(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})/;
+const TIMESTAMP_PREFIX = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?\s*/;
+const LEVEL_PREFIX = /^(?i)(ERROR|FATAL|PANIC|WARN(?:ING)?|INFO|DEBUG)\s*[:|-]?\s*/;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function parseLogLine(line) {
+  const entry = { timestamp: null, level: 'INFO', message: line, pod: '', namespace: '' };
+  const tsMatch = line.match(TS_RE);
+  if (tsMatch) {
+    const t = new Date(tsMatch[1].replace(' ', 'T'));
+    if (!isNaN(t)) entry.timestamp = t;
+  }
+  const upper = line.toUpperCase();
+  if (upper.includes('ERROR') || upper.includes('FATAL') || upper.includes('PANIC')) entry.level = 'ERROR';
+  else if (upper.includes('WARN')) entry.level = 'WARN';
+  else if (upper.includes('DEBUG')) entry.level = 'DEBUG';
+  else entry.level = 'INFO';
+  const podMatch = line.match(/\bpod[=: ]?([a-z0-9][a-z0-9.-]*)/i) || line.match(/-\s+([a-z0-9-]+-[a-z0-9-]+)\s+\S+.*?$/);
+  return entry;
+}
+function normalizeErrorMessage(line) {
+  let t = line.replace(TIMESTAMP_PREFIX, '').replace(LEVEL_PREFIX, '').trim();
+  return t === '' ? line.trim() : t;
+}
+function analyzeLogs(entries) {
+  const result = { total_lines: entries.length, error_count: 0, warn_count: 0, info_count: 0, debug_count: 0,
+    top_errors: [], timeline: {}, level_counts: {} };
+  const errorMsgs = new Map();
+  for (const e of entries) {
+    result.level_counts[e.level] = (result.level_counts[e.level] || 0) + 1;
+    switch (e.level) {
+      case 'ERROR': {
+        result.error_count++;
+        let msg = normalizeErrorMessage(e.message).slice(0, 120);
+        errorMsgs.set(msg, (errorMsgs.get(msg) || 0) + 1);
+        break;
+      }
+      case 'WARN': result.warn_count++; break;
+      case 'DEBUG': result.debug_count++; break;
+      default: result.info_count++;
+    }
+    if (e.timestamp) {
+      const key = e.timestamp.toTimeString().slice(0, 5);
+      result.timeline[key] = (result.timeline[key] || 0) + 1;
+    }
+  }
+  result.top_errors = [...errorMsgs.entries()]
+    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
+    .slice(0, 10)
+    .map(([message, count]) => ({ message, count }));
+  return result;
+}
+
+/* =============== sample logs =============== */
+const SAMPLE = `2026-11-03T08:59:55 api ERROR: failed to dial postgres dial tcp 10.0.4.2:5432: i/o timeout
+2026-11-03T09:00:01 api INFO: retrying connection to postgres
+2026-11-03T09:00:02 api ERROR: failed to dial postgres dial tcp 10.0.4.2:5432: i/o timeout
+2026-11-03T09:00:03 worker INFO: job 4711 started
+2026-11-03T09:00:05 api ERROR: failed to dial postgres dial tcp 10.0.4.2:5432: i/o timeout
+2026-11-03T09:00:07 proxy WARN: upstream latency above 500ms
+2026-11-03T09:00:09 api ERROR: failed to dial postgres dial tcp 10.0.4.2:5432: i/o timeout
+2026-11-03T09:00:11 api ERROR: upstream returned 502 bad gateway from auth-service
+2026-11-03T09:00:12 worker INFO: job 4711 finished in 3.1s
+2026-11-03T09:00:14 api ERROR: upstream returned 502 bad gateway from auth-service
+2026-11-03T09:00:18 cache DEBUG: evicted 128 stale keys
+2026-11-03T09:00:21 api WARN: slow query took 840ms
+2026-11-03T09:00:22 api ERROR: upstream returned 502 bad gateway from auth-service
+2026-11-03T09:00:25 proxy ERROR: connection reset by peer from 10.0.7.19
+2026-11-03T09:00:27 api ERROR: failed to dial postgres dial tcp 10.0.4.2:5432: i/o timeout
+2026-11-03T09:00:30 api INFO: health check passed
+2026-11-03T09:00:33 proxy ERROR: connection reset by peer from 10.0.7.19
+2026-11-03T09:00:36 api INFO: request 2a9f completed in 120ms
+2026-11-03T09:00:39 worker WARN: queue depth at 72 percent`;
+const $ = id => document.getElementById(id);
+let lastResult = null;
+
+function analyze() {
+  const text = $('logs').value;
+  const lines = text.split('\n').filter(l => l.trim().length > 0);
+  Sound.analyze();
+  if (!lines.length) {
+    $('summaryCards').innerHTML = ''; $('timeline').innerHTML = '<div class="empty">Paste logs to analyze</div>'; $('errorRows').innerHTML = '';
+    return;
+  }
+  const entries = lines.map(parseLogLine);
+  lastResult = analyzeLogs(entries);
+  if (lastResult.error_count === 0 && lastResult.warn_count === 0) Sound.clean();
+  else if (lastResult.error_count > 0) Sound.bad();
+  render();
+}
+function render() {
+  const r = lastResult;
+  $('summaryCards').innerHTML = [
+    ['total', r.total_lines, ''], ['errors', r.error_count, 'error'], ['warns', r.warn_count, 'warn'],
+    ['info', r.info_count, 'info'], ['debug', r.debug_count, 'debug'],
+  ].map(([label, n, cls]) => `<div class="card ${cls}"><div class="n">${n}</div><div class="l">${label}</div></div>`).join('');
+
+  const minutes = Object.entries(r.timeline).sort((a, b) => a[0].localeCompare(b[0]));
+  const max = Math.max(1, ...minutes.map(([, n]) => n));
+  $('timeline').innerHTML = minutes.length
+    ? minutes.map(([min, n]) => `<div class="bar-row"><span style="font-family:ui-monospace,monospace;color:var(--muted)">${esc(min)}</span><span class="track"><span class="fill" style="width:${(n / max) * 100}%"></span></span><span class="count">${n}</span></div>`).join('')
+    : '<div class="empty">No timestamps found — timeline unavailable</div>';
+
+  const maxErr = Math.max(1, ...r.top_errors.map(e => e.count));
+  $('errorRows').innerHTML = r.top_errors.length
+    ? r.top_errors.map((e, i) => `<tr>
+        <td class="rank">${i + 1}</td>
+        <td class="err-msg">${esc(e.message)}</td>
+        <td><div class="bar-inline"><span class="mini"><i style="width:${(e.count / maxErr) * 100}%"></i></span><span class="mini-num">${e.count}×</span></div></td>
+      </tr>`).join('')
+    : '<tr><td colspan="3" class="empty">No ERROR lines found</td></tr>';
+}
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 2200); }
+
+$('analyzeBtn').addEventListener('click', analyze);
+$('logs').addEventListener('input', () => { $('hint').textContent = '· editing…'; });
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); analyze(); }
+});
+$('sampleBtn').addEventListener('click', () => { $('logs').value = SAMPLE; analyze(); toast('Sample logs loaded'); });
+$('copyBtn').addEventListener('click', async () => {
+  if (!lastResult) return toast('Run an analysis first');
+  await navigator.clipboard.writeText(JSON.stringify(lastResult, null, 2));
+  Sound.copy(); toast('Analysis JSON copied');
+});
+$('soundBtn').addEventListener('click', () => { const m = Sound.toggleMute(); toast(m ? 'Sound off' : 'Sound on'); });
+
+$('logs').value = SAMPLE;
+analyze();
+</script>
 </body>
 </html>
