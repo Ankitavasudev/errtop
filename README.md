@@ -17,8 +17,12 @@ built from [`examples/incident.log`](examples/incident.log).
 ## Install
 
 ```bash
-go install github.com/Ankitavasudev/k8s-pod-analyzer@v0.2.0
+go install github.com/Ankitavasudev/k8s-pod-analyzer@v0.2.1
 ```
+
+Or grab a prebuilt binary — every tag ships Linux, macOS and Windows builds
+(amd64 + arm64) on the [releases page](https://github.com/Ankitavasudev/k8s-pod-analyzer/releases),
+built with [GoReleaser](https://goreleaser.com).
 
 Go 1.21 or newer. `go install` names the binary after the module, so the command
 is `k8s-pod-analyzer`. From a clone, `go build -o k8s-pod-analyzer .` produces
