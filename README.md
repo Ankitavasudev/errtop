@@ -1,34 +1,34 @@
-﻿# k8s-pod-analyzer
+# errtop
 
 Read container logs, count what went wrong, and rank the failures worth fixing
 first. It works on a local file, on stdin, or straight from `kubectl logs`, and
 it can write a self-contained HTML report you can attach to an incident ticket.
 
 ```bash
-k8s-pod-analyzer analyze examples/incident.log --timeline
-kubectl logs deploy/checkout-api --since=30m | k8s-pod-analyzer analyze -
-k8s-pod-analyzer analyze examples/incident.log -o html > report.html
-k8s-pod-analyzer kubectl -n payments --pod api-7d9f --since 30
+errtop analyze examples/incident.log --timeline
+kubectl logs deploy/checkout-api --since=30m | errtop analyze -
+errtop analyze examples/incident.log -o html > report.html
+errtop kubectl -n payments --pod api-7d9f --since 30
 ```
 
-[See a generated report](https://ankitavasudev.github.io/k8s-pod-analyzer/),
+[See a generated report](https://ankitavasudev.github.io/errtop/),
 built from [`examples/incident.log`](examples/incident.log).
 
 ## Install
 
 ```bash
-go install github.com/Ankitavasudev/k8s-pod-analyzer@v0.2.1
+go install github.com/Ankitavasudev/errtop@v0.3.0
 ```
 
 Or grab a prebuilt binary — every tag ships Linux, macOS and Windows builds
-(amd64 + arm64) on the [releases page](https://github.com/Ankitavasudev/k8s-pod-analyzer/releases),
+(amd64 + arm64) on the [releases page](https://github.com/Ankitavasudev/errtop/releases),
 built with [GoReleaser](https://goreleaser.com).
 
 Go 1.21 or newer. `go install` names the binary after the module, so the command
-is `k8s-pod-analyzer`. From a clone, `go build -o k8s-pod-analyzer .` produces
+is `errtop`. From a clone, `go build -o errtop .` produces
 the same binary.
 
-`k8s-pod-analyzer version` prints the version it was built from: the module
+`errtop version` prints the version it was built from: the module
 version when installed with `go install`, or the value compiled into the source
 when built from a checkout.
 
@@ -63,12 +63,12 @@ then by name, so two runs over the same input produce the same bytes.
 ## Output formats
 
 ```bash
-k8s-pod-analyzer analyze app.log                  # text summary
-k8s-pod-analyzer analyze app.log -o json          # machine readable
-k8s-pod-analyzer analyze app.log -o csv           # three stacked CSV tables
-k8s-pod-analyzer analyze app.log -o html          # self-contained report
-k8s-pod-analyzer analyze app.log -l error         # only ERROR lines
-k8s-pod-analyzer analyze app.log -t               # add the timeline histogram
+errtop analyze app.log                  # text summary
+errtop analyze app.log -o json          # machine readable
+errtop analyze app.log -o csv           # three stacked CSV tables
+errtop analyze app.log -o html          # self-contained report
+errtop analyze app.log -l error         # only ERROR lines
+errtop analyze app.log -t               # add the timeline histogram
 ```
 
 The JSON output is `{"timestamp": ..., "summary": {...}}`, with the timeline as
@@ -86,10 +86,10 @@ report to someone else, which is the point of the format.
 ## kubectl mode
 
 ```bash
-k8s-pod-analyzer kubectl                       # every pod in the current namespace
-k8s-pod-analyzer kubectl -n prod -p web-0      # one pod
-k8s-pod-analyzer kubectl -n prod -c sidecar    # one container
-k8s-pod-analyzer kubectl --since 15            # last 15 minutes (default 60)
+errtop kubectl                       # every pod in the current namespace
+errtop kubectl -n prod -p web-0      # one pod
+errtop kubectl -n prod -c sidecar    # one container
+errtop kubectl --since 15            # last 15 minutes (default 60)
 ```
 
 Each call runs `kubectl logs --tail=1000`. A pod that fails to return logs is

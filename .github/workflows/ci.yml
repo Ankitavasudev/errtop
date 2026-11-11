@@ -31,22 +31,22 @@ jobs:
         run: go test -race ./...
 
       - name: Build
-        run: go build -o k8s-pod-analyzer .
+        run: go build -o errtop .
 
       - name: Analyze the bundled sample
         run: |
-          ./k8s-pod-analyzer analyze examples/sample.log --timeline
-          ./k8s-pod-analyzer analyze examples/sample.log -o json > out.json
+          ./errtop analyze examples/sample.log --timeline
+          ./errtop analyze examples/sample.log -o json > out.json
           grep -q '"total_lines": 10' out.json
           grep -q '"error_count": 4' out.json
-          ./k8s-pod-analyzer analyze examples/sample.log -o csv > out.csv
+          ./errtop analyze examples/sample.log -o csv > out.csv
           grep -q 'error_count,4' out.csv
-          ./k8s-pod-analyzer analyze examples/sample.log -l error | grep -q 'Errors: 4'
-          cat examples/sample.log | ./k8s-pod-analyzer analyze -
+          ./errtop analyze examples/sample.log -l error | grep -q 'Errors: 4'
+          cat examples/sample.log | ./errtop analyze -
 
       - name: Check the HTML report
         run: |
-          ./k8s-pod-analyzer analyze examples/incident.log -o html > report.html
+          ./errtop analyze examples/incident.log -o html > report.html
           grep -q '<!DOCTYPE html>' report.html
           grep -q 'connection reset by peer' report.html
           # The report must work offline: no scripts, no external requests.

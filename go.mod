@@ -1,4 +1,4 @@
-module github.com/Ankitavasudev/k8s-pod-analyzer
+module github.com/Ankitavasudev/errtop
 
 go 1.21
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>k8s-pod-analyzer — rank pod log errors in your browser</title>
+<title>errtop — rank pod log errors in your browser</title>
 <meta name="description" content="Paste kubectl logs and get the same analysis as the CLI: error/warn/info/debug counts, a per-minute timeline, and the top recurring error messages — all in your browser.">
 <style>
 :root{--bg:#0b1120;--panel:#141c2f;--panel-2:#1a2438;--text:#e6edf7;--muted:#8fa3bf;--line:#243049;--error:#f87171;--warn:#fbbf24;--info:#38bdf8;--debug:#a78bfa;--ok:#34d399}
@@ -61,14 +61,14 @@ tbody tr:hover{background:rgba(56,189,248,.05)}
 
   <div class="top">
     <div>
-      <h1><code>k8s-pod-analyzer</code></h1>
+      <h1><code>errtop</code></h1>
       <div class="sub">Paste <code>kubectl logs</code> output · same analysis as the CLI · runs in your browser</div>
     </div>
     <div class="actions">
       <button class="btn" id="sampleBtn" title="Load sample logs">Sample logs</button>
       <button class="btn" id="copyBtn" title="Copy analysis JSON">Copy JSON</button>
       <button class="btn" id="soundBtn" title="Toggle sound">Sound</button>
-      <a class="btn" href="https://github.com/Ankitavasudev/k8s-pod-analyzer" target="_blank" rel="noopener">GitHub</a>
+      <a class="btn" href="https://github.com/Ankitavasudev/errtop" target="_blank" rel="noopener">GitHub</a>
     </div>
   </div>
 
@@ -96,7 +96,7 @@ tbody tr:hover{background:rgba(56,189,248,.05)}
   </section>
 
   <div class="foot">
-    <span>Ported byte-for-byte from <code>main.go</code> (<code>parseLogLine</code> → <code>analyzeLogs</code>) · <a href="https://github.com/Ankitavasudev/k8s-pod-analyzer" style="color:var(--info)">source</a></span>
+    <span>Ported byte-for-byte from <code>main.go</code> (<code>parseLogLine</code> → <code>analyzeLogs</code>) · <a href="https://github.com/Ankitavasudev/errtop" style="color:var(--info)">source</a></span>
     <span><span class="kbd">Ctrl</span>+<span class="kbd">Enter</span> analyze</span>
   </div>
 </div>
